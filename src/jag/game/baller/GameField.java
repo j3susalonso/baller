@@ -22,15 +22,15 @@ public class GameField {
 	}
     
     public void updateBallPosition() {
-    	long curTime = System.currentTimeMillis();
-        if (lastUpdateTime < 0) {
-            lastUpdateTime = curTime;
-            return;
-        }
-        long elapsedTime = curTime - lastUpdateTime;
-        lastUpdateTime = curTime;
-        calculateBallPosition(elapsedTime);
-        checkBouncing();
+    	long currentTime = System.currentTimeMillis();//Current time
+    	long elapsedTime = currentTime - lastUpdateTime;//Elapsed time since last update
+    	if(lastUpdateTime < 0){
+    		lastUpdateTime = currentTime;
+    		return;
+    	}
+        lastUpdateTime = currentTime;//Update lastUpdateTime
+        calculateBallPosition(elapsedTime);//Re-calculate ball position
+        checkBouncing();//Check if bouncing
     }
     
     public void calculateBallPosition(long elapsedTime) {
@@ -61,14 +61,12 @@ public class GameField {
         }
     }
 
-    
     public void checkBouncing() {
-        
         float lWidth, lHeight;
         float lVelX, lVelY;
 		float lBallY;
 		float lBallX;
-		
+		//Retrieve fields
         synchronized (LOCK) {
             lWidth  = fieldWidth;
             lHeight = fieldHeight;
@@ -76,12 +74,10 @@ public class GameField {
             lBallY  = ballPosY;
             lVelX     = velX;            
             lVelY     = velY;
-        }
-        
+        } 
         boolean bouncedX = false;
         boolean bouncedY = false;
-
-        //Bounce Y
+        //Bounced Y
         if (lBallY - ballRadius < 0) {
             lBallY = ballRadius;
             lVelY = -lVelY * BOUNCE_FACTOR;
@@ -95,8 +91,7 @@ public class GameField {
             lVelY = 0;  
             bouncedY = false;
         }
-
-        //Bounce X
+        //Bounced X
         if (lBallX - ballRadius < 0) {
         	lBallX = ballRadius;
         	lVelX = -lVelX * BOUNCE_FACTOR;
@@ -109,8 +104,7 @@ public class GameField {
         if (bouncedX && Math.abs(lVelX) < STOP_BOUNCE_THRESHOLD) {
         	lVelX = 0;
         	bouncedX = false;
-        }
-        
+        } 
         // Update fields
         synchronized (LOCK) {
         	ballPosX = lBallX;
@@ -118,14 +112,18 @@ public class GameField {
             velX = lVelX;
             velY = lVelY;
         }
-        
-        //Vibrate if bouncing
+        //Vibrate if bounced
+        vibrate(bouncedX, bouncedY);
+    }
+
+	private void vibrate(boolean bouncedX, boolean bouncedY) {
+		//Vibrate if bounced
         if (bouncedX || bouncedY) {
         	if(vibrator !=null){
         		vibrator.vibrate(20L);
         	}
         }
-    }
+	}
     
 	public void checkBallHit(float x, float y) {
 		float width = ballRadius;
