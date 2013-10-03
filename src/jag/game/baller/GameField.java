@@ -3,6 +3,7 @@ package jag.game.baller;
 import android.os.Vibrator;
 
 public class GameField {
+	
 	private final float pixelsPerMeter = 10;
 	private final float ballRadius;
 	private float ballPosX, ballPosY;
@@ -56,14 +57,52 @@ public class GameField {
     }
     
     public void updateBallPosition() {
-        long curTime = System.currentTimeMillis();
+    	long curTime = System.currentTimeMillis();
         if (lastTimeMs < 0) {
             lastTimeMs = curTime;
             return;
         }
+
+        long elapsedTime = curTime - lastTimeMs;
+        lastTimeMs = curTime;
+        
+        calculateBallPosition(elapsedTime);
+        checkBouncing();
+    }
+    
+    public void calculateBallPosition(long elapsedTime) {
+        float lAccelx, lAccely, lVelx, lVely;
+		float lBallY;
+		float lBallX;
+		//Retrieve fields
+        synchronized (LOCK) {
+            lBallX  = ballPosX;
+            lBallY  = ballPosY;
+            lVelx   = velocityX;            
+            lVely   = velocityY;
+            lAccelx  = accelX;
+            lAccely  = accelY;
+        }      
+        // update the velocity (meters / second)
+        lVelx += elapsedTime * lAccelx * pixelsPerMeter / 1000;
+        lVely += elapsedTime * lAccely * pixelsPerMeter / 1000;
+        // update the position
+        lBallX += lVelx * elapsedTime * pixelsPerMeter / 1000;
+        lBallY += lVely * elapsedTime * pixelsPerMeter / 1000; 
+        // Update fields
+        synchronized (LOCK) {
+        	ballPosX = lBallX;
+        	ballPosY = lBallY;
+            velocityX = lVelx;
+            velocityY = lVely;
+        }
+    }
+
+    
+    public void checkBouncing() {
         
         float lWidth, lHeight;
-        float lAx, lAy, lVx, lVy;
+        float lVx, lVy;
 		float lBallY;
 		float lBallX;
 		
@@ -74,20 +113,7 @@ public class GameField {
             lBallY  = ballPosY;
             lVx     = velocityX;            
             lVy     = velocityY;
-            lAx     = accelX;
-            lAy     = accelY;
         }
-
-        long elapsedMs = curTime - lastTimeMs;
-        lastTimeMs = curTime;
-        
-        // update the velocity (meters / second)
-        lVx += elapsedMs * lAx * pixelsPerMeter / 1000;
-        lVy += elapsedMs * lAy * pixelsPerMeter / 1000;
-
-        // update the position
-        lBallX += lVx * elapsedMs * pixelsPerMeter / 1000;
-        lBallY += lVy * elapsedMs * pixelsPerMeter / 1000;
         
         boolean bouncedX = false;
         boolean bouncedY = false;
@@ -131,27 +157,25 @@ public class GameField {
         
         //Vibrate if bouncing
         if (bouncedX || bouncedY) {
-        	if(vibrator !=null)	vibrator.vibrate(20L);
+        	if(vibrator !=null){
+        		vibrator.vibrate(20L);
+        	}
         }
     }
-
+    
 	public void checkBallHit(float x, float y) {
-		int w = (int) ballRadius;
-		int h = (int) ballRadius;
+		float width = ballRadius;
+		float heigth = ballRadius;
 		float rx = ballPosX;
 		float ry = ballPosY;
 		
-		if (x < rx - w || x > rx + w || y < ry - w || y > ry + h) {
+		if (x < rx - width || x > rx + width || y < ry - width || y > ry + heigth) {
 			return;
 		}
 		
-		float lVx, lVy;
-		lVx =   0;
-		lVy = HIT_BOUNCE;
-		
 		synchronized (LOCK) {
-			velocityX = lVx;
-			velocityY = lVy;
+			velocityX = 0;
+			velocityY = HIT_BOUNCE;
 		}
 	}
 }
